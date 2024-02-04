@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Forgery Detection</title>
+  <!-- Your existing CSS styles go here -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      height: 100vh;
+    }
+    #left-side {
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 30%; /* Change this from 'max-width: 35%' to 'width: 35%' */
+}
+
+
+    #right-side {
+      flex: 3;
+      background-color: #3498db;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      color: #fff;
+      padding-top: 50px;
+    }
+    #selected-image {
+      max-width: 50%;
+      max-height: 50vh;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+    #display-image {
+  max-width: 35% !important; /* Adjust this value to your preference */
+  max-height: 35vh !important; /* Adjust this value to your preference */
+  margin-bottom: 20px !important;
+  border-radius: 5px !important;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+    .file-input-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 300px;
+      margin-bottom: 20px;
+    }
+    .button-small {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #fff;
+      color: #3498db;
+      font-size: 14px;
+      cursor: pointer;
+      outline: none;
+      margin: 5px;
+    }
+    .button-large {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: #fff;
+      color: #3498db;
+      font-size: 16px;
+      cursor: pointer;
+      outline: none;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="left-side">
+    <h2>BEWARE OF IMAGE FORGERIES</h2>
+    <img src="../images/front_img.jpg" alt="" id="selected-image">
+  </div>
+  <div id="right-side">
+    <h1>Image Forgery Detection</h1>
+    <div class="file-input-container">
+      <input type="file" id="file-input" class="button-small">
+      <input type="submit" value="Submit" id="submit-button" class="button-small">
+    </div>
+    <img src="" alt="Selected Image" id="display-image" style="display: none; max-width: 50%; max-height: 50vh;">
+    <div>
+      <button class="button-large" id="ela-button">ELA</button>
+      <button class="button-large" id="copy-move-button">Copy Move Forgery Detection</button>
+      <button class="button-large" id="splicing-button">Splicing Forgery Detection</button>
+    </div>
+    <img src="" alt="ELA Image" id="ela-image" style="display: none; max-width: 70%; max-height: 70vh;">
+    <p id="prediction-result"></p>
+    <img src="" alt="Result" id="result-image" style="display: none; max-width: 70%; max-height: 70vh;">
+  </div>
+
+  <script>
+    // Your existing JavaScript code goes here
+
+    const fileInput = document.getElementById('file-input');
+    const elaButton = document.getElementById('ela-button');
+    const copyMoveButton = document.getElementById('copy-move-button');
+    const splicingButton = document.getElementById('splicing-button');
+    const submitButton = document.getElementById('submit-button');
+    const displayImage = document.getElementById('display-image');
+    const resultImage = document.getElementById('result-image');
+
+    fileInput.addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          displayImage.style.display = 'block';
+          displayImage.src = e.target.result;
+        };
+
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function processImage(method) {
+      // Call the backend to process the image and get result
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/process_image', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status === 200) {
+            resultImage.style.display = 'block';
+            resultImage.src = URL.createObjectURL(xhr.response); // Set result image source
+          } else {
+            alert('Error processing image');
+          }
+        }
+      };
+
+      const formData = new FormData();
+      formData.append('image_data', fileInput.files[0]);
+      formData.append('method', method);
+      xhr.send(formData);
+    }
+
+
+    copyMoveButton.addEventListener('click', function () {
+      processImage('copy-move');
+    });
+
+    splicingButton.addEventListener('click', function () {
+      processImage('splicing');
+    });
+
+    submitButton.addEventListener('click', function () {
+      // TODO: Add your submit logic here
+    });
+
+    elaButton.addEventListener('click', function () {
+      if (!fileInput.files[0]) {
+        alert('Please select an image first.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image_data', fileInput.files[0]);
+      formData.append('method', 'ela');
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/process_image', true);
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            document.getElementById('ela-image').src = response.ela_image_url;
+            document.getElementById('prediction-result').innerText = response.prediction_result;
+          } else {
+            alert('Error processing image');
+          }
+        }
+      };
+
+      xhr.send(formData);
+    });
+  </script>
+</body>
+</html>
